@@ -3,34 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Video Access</title>
+    <title>Secure Video Access</title> 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Message container -->
-    <div id="message"></div>
-    
-    <!-- Registration Form -->
-    <div id="registration-form" style="display: none;">
-        <h4 class="text-center mb-3">Please Register Your Device</h4>
-        <form id="customer-registration">
-            <div class="mb-3">
-                <label for="shop-name" class="form-label">Shop Name</label>
-                <input type="text" class="form-control" id="shop-name" required>
-            </div>
-            <div class="mb-3">
-                <label for="postal-code" class="form-label">Postal Code</label>
-                <input type="text" class="form-control" id="postal-code" required>
-            </div>
-            <div class="mb-3">
-                <label for="device-number" class="form-label">Device Number</label>
-                <input type="text" class="form-control" id="device-number" required>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Submit</button>
-        </form>
-    </div>
+    <!-- Changed container to minimal layout for fullscreen video -->
+    <div class="container-fluid p-0">
+        <div id="message" class="text-center"></div>
+        
+        <!-- Registration Form (Initially Hidden) -->
+        <div id="registration-form" class="mt-4" style="display: none;">
+            <h4 class="text-center mb-3">Please Register Your Device</h4>
+            <form id="customer-registration">
+                <div class="mb-3">
+                    <label for="shop-name" class="form-label">Shop Name</label>
+                    <input type="text" class="form-control" id="shop-name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="postal-code" class="form-label">Postal Code</label>
+                    <input type="text" class="form-control" id="postal-code" required>
+                </div>
+                <div class="mb-3">
+                    <label for="device-number" class="form-label">Device Number</label>
+                    <input type="text" class="form-control" id="device-number" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
         
         <!-- Fullscreen video container -->
         <div id="video-container" style="display: none;">
