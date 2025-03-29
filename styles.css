@@ -1,0 +1,44 @@
+body {
+    background-color: #f4f4f4;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 20px;
+    background: white;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+h2 {
+    font-weight: bold;
+}
+
+.video-box {
+    text-align: center;
+    margin-top: 20px;
+}
+
+#play-video {
+    width: 100%;
+    border-radius: 10px;
+}
+
+/* Registration form styles */
+#registration-form {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+#registration-form h4 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.form-label {
+    font-weight: 500;
+}
