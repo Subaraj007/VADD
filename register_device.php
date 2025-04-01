@@ -1,42 +1,35 @@
 <?php
+require_once 'Database.php';
+
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
-// Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "devicedb";
+try {
+    // Database connection using singleton
+    $db = Database::getInstance();
+    $conn = $db->getConnection();
 
-$conn = new mysqli($servername, $username, $password, $dbname);
+    $data = json_decode(file_get_contents(filename: "php://input"), true);
+    $required = ['fingerprint', 'shop_name', 'postal_code', 'device_number'];
 
-if ($conn->connect_error) {
-    die(json_encode(["status" => "error", "message" => "Database connection failed: " . $conn->connect_error]));
+    foreach ($required as $field) {
+        if (empty($data[$field])) {
+            echo json_encode(["status" => "error", "message" => "$field is required"]);
+            exit;
+        }
+    }
+
+    $stmt = $conn->prepare("UPDATE devices SET shop_name=?, postal_code=?, device_number=?, registration_complete=TRUE WHERE fingerprint=?");
+    $stmt->bind_param("ssss", $data['shop_name'], $data['postal_code'], $data['device_number'], $data['fingerprint']);
+
+    echo $stmt->execute() ? 
+        json_encode(["status" => "success"]) : 
+        json_encode(["status" => "error", "message" => "Registration failed"]);
+
+} catch (Exception $e) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Database error: " . $e->getMessage()
+    ]);
 }
-
-// Get request data
-$data = json_decode(file_get_contents("php://input"), true);
-$fingerprint = $data["fingerprint"] ?? '';
-$shopName = $data["shop_name"] ?? '';
-$postalCode = $data["postal_code"] ?? '';
-$deviceNumber = $data["device_number"] ?? '';
-
-if (empty($fingerprint) || empty($shopName) || empty($postalCode) || empty($deviceNumber)) {
-    echo json_encode(["status" => "error", "message" => "All fields are required"]);
-    exit;
-}
-
-// Update device with customer information
-$stmt = $conn->prepare("UPDATE devices SET shop_name = ?, postal_code = ?, device_number = ?, registration_complete = TRUE WHERE fingerprint = ?");
-$stmt->bind_param("ssss", $shopName, $postalCode, $deviceNumber, $fingerprint);
-
-if ($stmt->execute()) {
-    echo json_encode(["status" => "success", "message" => "Device registered successfully"]);
-} else {
-    echo json_encode(["status" => "error", "message" => "Failed to update device information"]);
-}
-
-$conn->close();
 ?>

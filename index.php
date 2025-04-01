@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Video Access</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js?ver=<?= time() ?>"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -21,7 +21,7 @@
                 <input type="text" class="form-control" id="shop-name" required>
             </div>
             <div class="mb-3">
-                <label for="postal-code" class="form-label">Postal Code</label>
+                <label for="postal-code" class="form-label">Address and Postal Code</label>
                 <input type="text" class="form-control" id="postal-code" required>
             </div>
             <div class="mb-3">
@@ -32,18 +32,29 @@
         </form>
     </div>
         
-        <!-- Fullscreen video container -->
-        <div id="video-container" style="display: none;">
-            <video id="play-video" autoplay muted></video>
-        </div>
+    <!-- Fullscreen video container -->
+    <div id="video-container" style="display: none;">
+        <video id="play-video" autoplay muted></video>
     </div>
 
     <script>
+        // Global variables for video management
+        var videos = [];
+        var currentVideo = 0;
+
         async function getFingerprint() {
-            const fp = await FingerprintJS.load();
-            const result = await fp.get();
-            return result.visitorId;
+            try {
+                const fp = await FingerprintJS.load();
+                const result = await fp.get();
+                console.log("Fingerprint:", result.visitorId, 
+                        "Components:", result.components);
+                return result.visitorId;
+            } catch (error) {
+                console.error("Fingerprint error:", error);
+                return "error-"+Math.random().toString(36).slice(2);
+            }
         }
+      
 
         async function verifyDevice() {
             const fingerprint = await getFingerprint();
@@ -58,33 +69,92 @@
 
             switch (data.status) {
                 case "Authorized":
-                    messageDiv.style.display = "none"; // Hide message for clean fullscreen
+                    messageDiv.style.display = "none";
                     document.getElementById("video-container").style.display = "block";
+                    
+                    // Use custom videos if available in database
+                    if (data.custom_videos && data.custom_videos.length > 0) {
+                        videos = data.custom_videos;
+                        console.log("Playing custom videos:", videos);
+                    } else {
+                        // Fallback to default videos
+                        videos = <?php
+                            $video_files = [];
+                            $video_folder = "videolar";
+                            if (is_dir($video_folder)) {
+                                foreach (scandir($video_folder) as $video) {
+                                    if ($video !== "." && $video !== "..") {
+                                        $video_files[] = $video_folder . "/" . $video;
+                                    }
+                                }
+                            }
+                            echo json_encode($video_files);
+                        ?>;
+                        // Shuffle only default videos
+                        shuffleArray(videos);
+                        console.log("Playing default videos:", videos);
+                    }
+                    
                     enterFullscreen();
                     nextVideo();
                     break;
+                    
                 case "Unauthorized":
                     messageDiv.innerHTML = `<p class='text-danger'>${data.message || "Access Denied"}</p>`;
                     break;
+                    
                 case "NewDevice":
                     messageDiv.innerHTML = `<p class='text-warning'>${data.message || "Please register your device"}</p>`;
                     document.getElementById("registration-form").style.display = "block";
                     setupRegistrationForm(fingerprint);
                     break;
+                    
                 case "Unregistered":
                     messageDiv.innerHTML = `<p class='text-warning'>Please complete your registration</p>`;
                     document.getElementById("registration-form").style.display = "block";
                     setupRegistrationForm(fingerprint);
                     break;
+                    
                 default:
                     messageDiv.innerHTML = `<p class='text-danger'>Error: ${data.message || "Unknown error"}</p>`;
             }
         }
 
+        // Helper function to shuffle array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function nextVideo() {
+            if (videos.length === 0) {
+                console.error("No videos available to play");
+                return;
+            }
+            
+            var videoPlayer = document.getElementById("play-video");
+            videoPlayer.src = videos[currentVideo];
+            videoPlayer.play()
+                .then(() => {
+                    console.log("Now playing:", videos[currentVideo]);
+                })
+                .catch(error => {
+                    console.error("Error playing video:", error);
+                });
+            
+            currentVideo = (currentVideo + 1) % videos.length;
+            videoPlayer.addEventListener('ended', nextVideo, false);
+        }
+
         function enterFullscreen() {
             const elem = document.documentElement;
             if (elem.requestFullscreen) {
-                elem.requestFullscreen();
+                elem.requestFullscreen().catch(err => {
+                    console.error("Fullscreen error:", err);
+                });
             } else if (elem.webkitRequestFullscreen) { /* Safari */
                 elem.webkitRequestFullscreen();
             } else if (elem.msRequestFullscreen) { /* IE11 */
@@ -121,45 +191,24 @@
             });
         }
 
-        document.addEventListener("DOMContentLoaded", verifyDevice);
-
-        var videos = <?php
-            $video_files = [];
-            $video_folder = "videolar";
-
-            if (is_dir($video_folder)) {
-                foreach (scandir($video_folder) as $video) {
-                    if ($video !== "." && $video !== "..") {
-                        $video_files[] = $video_folder . "/" . $video;
-                    }
-                }
-            }
-            shuffle($video_files);
-            echo json_encode($video_files);
-        ?>;
-
-        var currentVideo = 0;
-        function nextVideo() {
-            var videoPlayer = document.getElementById("play-video");
-            videoPlayer.src = videos[currentVideo];
-            videoPlayer.play();
-            currentVideo = (currentVideo + 1) % videos.length;
-            videoPlayer.addEventListener('ended', nextVideo, false);
-        }
-
         // Auto-resize video to fullscreen dimensions
         function resizeVideo() {
             const video = document.getElementById("play-video");
-            video.style.width = window.innerWidth + 'px';
-            video.style.height = window.innerHeight + 'px';
+            if (video) {
+                video.style.width = window.innerWidth + 'px';
+                video.style.height = window.innerHeight + 'px';
+            }
         }
 
-        window.addEventListener('resize', resizeVideo);
-        window.addEventListener('fullscreenchange', function() {
-            if (!document.fullscreenElement) {
-                // If user exits fullscreen, re-enter it
-                enterFullscreen();
-            }
+        // Initialize
+        document.addEventListener("DOMContentLoaded", function() {
+            verifyDevice();
+            window.addEventListener('resize', resizeVideo);
+            window.addEventListener('fullscreenchange', function() {
+                if (!document.fullscreenElement) {
+                    enterFullscreen();
+                }
+            });
         });
     </script>
 </body>
