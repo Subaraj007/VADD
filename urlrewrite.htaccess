@@ -1,0 +1,10 @@
+RewriteEngine On
+RewriteBase /
+
+# Redirect /Final_VADD/xxx/yyy to subdomain_handler.php
+RewriteRule ^Final_VADD/([^/]+)/([^/]+)/?$ subdomain_handler.php?storeId=$1&deviceId=$2 [L,QSA]
+
+# If file/folder doesn't exist, redirect to subdomain handler
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^Final_VADD/ subdomain_handler.php [L]

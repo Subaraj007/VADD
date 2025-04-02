@@ -3,210 +3,271 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Video Access</title>
+    <title>Device Registration</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js?ver=<?= time() ?>"></script>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+        }
+        #registration-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #video-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: black;
+            z-index: 1000;
+        }
+        #play-video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
-    <!-- Message container -->
-    <div id="message"></div>
-    
-    <!-- Registration Form -->
-    <div id="registration-form" style="display: none;">
-        <h4 class="text-center mb-3">Please Register Your Device</h4>
-        <form id="customer-registration">
-            <div class="mb-3">
-                <label for="shop-name" class="form-label">Shop Name</label>
-                <input type="text" class="form-control" id="shop-name" required>
-            </div>
-            <div class="mb-3">
-                <label for="postal-code" class="form-label">Address and Postal Code</label>
-                <input type="text" class="form-control" id="postal-code" required>
-            </div>
-            <div class="mb-3">
-                <label for="device-number" class="form-label">Device Number</label>
-                <input type="text" class="form-control" id="device-number" required>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Submit</button>
-        </form>
+    <div id="registration-container">
+        <div id="registration-form">
+            <h4 class="text-center mb-4">Please Register Your Device</h4>
+            <form id="device-registration">
+                <div class="mb-3">
+                    <label for="shop-select" class="form-label">Shop Name</label>
+                    <select class="form-select" id="shop-select" required>
+                        <option value="">Select your shop</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="device-select" class="form-label">Device Name</label>
+                    <select class="form-select" id="device-select" required disabled>
+                        <option value="">Select your device</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Register Device</button>
+            </form>
+        </div>
+        <div id="status-message" class="mt-3"></div>
     </div>
-        
-    <!-- Fullscreen video container -->
-    <div id="video-container" style="display: none;">
+
+    <div id="video-container">
         <video id="play-video" autoplay muted></video>
     </div>
 
     <script>
-        // Global variables for video management
-        var videos = [];
-        var currentVideo = 0;
+        // Global variables
+        let currentVideoIndex = 0;
+        let videoPlaylist = [];
+        let deviceApprovalCheckInterval = null;
 
         async function getFingerprint() {
             try {
                 const fp = await FingerprintJS.load();
                 const result = await fp.get();
-                console.log("Fingerprint:", result.visitorId, 
-                        "Components:", result.components);
                 return result.visitorId;
             } catch (error) {
                 console.error("Fingerprint error:", error);
                 return "error-"+Math.random().toString(36).slice(2);
             }
         }
-      
 
-        async function verifyDevice() {
-            const fingerprint = await getFingerprint();
-            const response = await fetch("verify.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ fingerprint })
-            });
-
-            const data = await response.json();
-            const messageDiv = document.getElementById("message");
-
-            switch (data.status) {
-                case "Authorized":
-                    messageDiv.style.display = "none";
-                    document.getElementById("video-container").style.display = "block";
-                    
-                    // Use custom videos if available in database
-                    if (data.custom_videos && data.custom_videos.length > 0) {
-                        videos = data.custom_videos;
-                        console.log("Playing custom videos:", videos);
-                    } else {
-                        // Fallback to default videos
-                        videos = <?php
-                            $video_files = [];
-                            $video_folder = "videolar";
-                            if (is_dir($video_folder)) {
-                                foreach (scandir($video_folder) as $video) {
-                                    if ($video !== "." && $video !== "..") {
-                                        $video_files[] = $video_folder . "/" . $video;
-                                    }
-                                }
-                            }
-                            echo json_encode($video_files);
-                        ?>;
-                        // Shuffle only default videos
-                        shuffleArray(videos);
-                        console.log("Playing default videos:", videos);
-                    }
-                    
-                    enterFullscreen();
-                    nextVideo();
-                    break;
-                    
-                case "Unauthorized":
-                    messageDiv.innerHTML = `<p class='text-danger'>${data.message || "Access Denied"}</p>`;
-                    break;
-                    
-                case "NewDevice":
-                    messageDiv.innerHTML = `<p class='text-warning'>${data.message || "Please register your device"}</p>`;
-                    document.getElementById("registration-form").style.display = "block";
-                    setupRegistrationForm(fingerprint);
-                    break;
-                    
-                case "Unregistered":
-                    messageDiv.innerHTML = `<p class='text-warning'>Please complete your registration</p>`;
-                    document.getElementById("registration-form").style.display = "block";
-                    setupRegistrationForm(fingerprint);
-                    break;
-                    
-                default:
-                    messageDiv.innerHTML = `<p class='text-danger'>Error: ${data.message || "Unknown error"}</p>`;
+        async function loadShops() {
+            try {
+                const response = await fetch('get_shops.php');
+                return await response.json();
+            } catch (error) {
+                console.error('Error loading shops:', error);
+                return [];
             }
         }
 
-        // Helper function to shuffle array
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
-        function nextVideo() {
-            if (videos.length === 0) {
-                console.error("No videos available to play");
-                return;
-            }
-            
-            var videoPlayer = document.getElementById("play-video");
-            videoPlayer.src = videos[currentVideo];
-            videoPlayer.play()
-                .then(() => {
-                    console.log("Now playing:", videos[currentVideo]);
-                })
-                .catch(error => {
-                    console.error("Error playing video:", error);
-                });
-            
-            currentVideo = (currentVideo + 1) % videos.length;
-            videoPlayer.addEventListener('ended', nextVideo, false);
-        }
-
-        function enterFullscreen() {
-            const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen().catch(err => {
-                    console.error("Fullscreen error:", err);
-                });
-            } else if (elem.webkitRequestFullscreen) { /* Safari */
-                elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) { /* IE11 */
-                elem.msRequestFullscreen();
+        async function loadDevices(storeId) {
+            try {
+                const response = await fetch(`get_devices.php?storeId=${storeId}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Error loading devices:', error);
+                return [];
             }
         }
 
-        function setupRegistrationForm(fingerprint) {
-            document.getElementById("customer-registration").addEventListener("submit", async function(e) {
-                e.preventDefault();
-                
-                const shopName = document.getElementById("shop-name").value;
-                const postalCode = document.getElementById("postal-code").value;
-                const deviceNumber = document.getElementById("device-number").value;
-                
-                const response = await fetch("register_device.php", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        fingerprint,
-                        shop_name: shopName,
-                        postal_code: postalCode,
-                        device_number: deviceNumber
+        async function registerDevice(uniqueId, deviceId, storeId) {
+            try {
+                const response = await fetch('register_device.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        UniqueId: uniqueId,
+                        DeviceId: deviceId,
+                        StoreId: storeId 
                     })
                 });
-                
-                const data = await response.json();
-                if (data.status === "success") {
-                    alert("Registration successful! Your access will be granted after approval.");
-                    window.location.reload();
-                } else {
-                    alert("Registration failed: " + (data.message || "Unknown error"));
-                }
-            });
-        }
-
-        // Auto-resize video to fullscreen dimensions
-        function resizeVideo() {
-            const video = document.getElementById("play-video");
-            if (video) {
-                video.style.width = window.innerWidth + 'px';
-                video.style.height = window.innerHeight + 'px';
+                return await response.json();
+            } catch (error) {
+                console.error('Registration error:', error);
+                return { status: 'error', message: 'Network error' };
             }
         }
 
-        // Initialize
-        document.addEventListener("DOMContentLoaded", function() {
-            verifyDevice();
-            window.addEventListener('resize', resizeVideo);
-            window.addEventListener('fullscreenchange', function() {
-                if (!document.fullscreenElement) {
-                    enterFullscreen();
+        async function checkApprovalStatus(uniqueId) {
+            try {
+                const response = await fetch('verify.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ UniqueId: uniqueId })
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Approval check error:', error);
+                return { status: 'error' };
+            }
+        }
+
+        function showStatusMessage(type, message) {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+        }
+
+        function hideRegistrationForm() {
+            document.getElementById('registration-form').classList.add('hidden');
+        }
+
+        function playNextVideo() {
+            const videoPlayer = document.getElementById('play-video');
+            if (videoPlaylist.length === 0) return;
+
+            videoPlayer.src = videoPlaylist[currentVideoIndex];
+            videoPlayer.play()
+                .catch(error => console.error("Error playing video:", error));
+
+            videoPlayer.onended = () => {
+                currentVideoIndex = (currentVideoIndex + 1) % videoPlaylist.length;
+                playNextVideo();
+            };
+        }
+
+        function startVideoPlayback(videos) {
+            videoPlaylist = videos;
+            if (videoPlaylist.length > 0) {
+                document.getElementById('video-container').style.display = 'block';
+                document.getElementById('registration-container').classList.add('hidden');
+                playNextVideo();
+            }
+        }
+
+        async function handleApprovedDevice(storeId, deviceId, uniqueId) {
+            // Set cookie before redirect (30 day expiry)
+            document.cookie = `device_fingerprint=${encodeURIComponent(uniqueId)}; path=/; max-age=2592000`;
+            // Redirect to subdomain URL
+            window.location.href = `http://localhost/Final_VADD/${storeId}/${deviceId}`;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const uniqueId = await getFingerprint();
+            console.log('Device fingerprint:', uniqueId);
+
+            // Check initial status
+            const status = await checkApprovalStatus(uniqueId);
+            
+            if (status.status === 'Authorized') {
+                // Device is approved - redirect to subdomain
+                handleApprovedDevice(status.storeId, status.deviceId, uniqueId);
+                return;
+            } else if (status.status === 'Pending') {
+                // Device registered but pending approval
+                hideRegistrationForm();
+                showStatusMessage('warning', 'Device registered successfully! Waiting for approval.');
+                
+                // Set cookie while waiting for approval
+                document.cookie = `device_fingerprint=${encodeURIComponent(uniqueId)}; path=/; max-age=2592000`;
+                
+                // Start checking for approval periodically
+                deviceApprovalCheckInterval = setInterval(async () => {
+                    const newStatus = await checkApprovalStatus(uniqueId);
+                    if (newStatus.status === 'Authorized') {
+                        clearInterval(deviceApprovalCheckInterval);
+                        handleApprovedDevice(newStatus.storeId, newStatus.deviceId, uniqueId);
+                    }
+                }, 10000); // Check every 10 seconds
+                return;
+            }
+
+            // Load shops for new registration
+            const shops = await loadShops();
+            const shopSelect = document.getElementById('shop-select');
+            
+            shops.forEach(shop => {
+                const option = document.createElement('option');
+                option.value = shop.StoreId;
+                option.textContent = shop.StoreName;
+                shopSelect.appendChild(option);
+            });
+
+            // Handle shop selection change
+            shopSelect.addEventListener('change', async (e) => {
+                if (e.target.value) {
+                    const devices = await loadDevices(e.target.value);
+                    const deviceSelect = document.getElementById('device-select');
+                    
+                    deviceSelect.innerHTML = '<option value="">Select your device</option>';
+                    deviceSelect.disabled = false;
+                    
+                    devices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.Id;
+                        option.textContent = device.DeviceName;
+                        deviceSelect.appendChild(option);
+                    });
+                }
+            });
+
+            // Handle form submission
+            document.getElementById('device-registration').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const shopId = document.getElementById('shop-select').value;
+                const deviceId = document.getElementById('device-select').value;
+                
+                if (!shopId || !deviceId) {
+                    showStatusMessage('danger', 'Please select both shop and device');
+                    return;
+                }
+                
+                const result = await registerDevice(uniqueId, deviceId, shopId);
+                
+                if (result.status === 'success') {
+                    // Set cookie immediately after successful registration
+                    document.cookie = `device_fingerprint=${encodeURIComponent(uniqueId)}; path=/; max-age=2592000`;
+                    
+                    hideRegistrationForm();
+                    showStatusMessage('success', 'Device registered successfully! Waiting for approval.');
+                    
+                    // Start checking for approval periodically
+                    deviceApprovalCheckInterval = setInterval(async () => {
+                        const newStatus = await checkApprovalStatus(uniqueId);
+                        if (newStatus.status === 'Authorized') {
+                            clearInterval(deviceApprovalCheckInterval);
+                            handleApprovedDevice(newStatus.storeId, newStatus.deviceId, uniqueId);
+                        }
+                    }, 10000); // Check every 10 seconds
+                } else {
+                    showStatusMessage('danger', `Error: ${result.message || 'Registration failed'}`);
                 }
             });
         });
