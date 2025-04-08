@@ -4,4 +4,6 @@ RewriteBase /Base_VADD/
 # If the file or directory does not exist, route to index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php [QSA,L]
+RewriteEngine On
+RewriteRule ^([A-Za-z0-9]+)/([A-Za-z0-9]+)$ subdomain_handler.php [QSA,L]
+

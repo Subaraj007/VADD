@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        #video-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #video-player {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        #loading-message {
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="video-container">
+        <div id="loading-message">Loading video...</div>
+        <video id="video-player" autoplay muted loop></video>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const videoPlayer = document.getElementById('video-player');
+            const loadingMessage = document.getElementById('loading-message');
+            const videoContainer = document.getElementById('video-container');
+            
+            try {
+                // Get device data from sessionStorage or URL
+                let deviceData;
+                
+                if (sessionStorage.getItem('currentDevice')) {
+                    deviceData = JSON.parse(sessionStorage.getItem('currentDevice'));
+                } else {
+                    // Fallback for direct access
+                    const urlParams = new URLSearchParams(window.location.search);
+                    deviceData = {
+                        storeId: urlParams.get('store'),
+                        deviceId: urlParams.get('device'),
+                        mediaPath: null
+                    };
+                    
+                    if (!deviceData.storeId || !deviceData.deviceId) {
+                        throw new Error('Missing device parameters');
+                    }
+                    
+                    // Fetch media path if not in sessionStorage
+                    const response = await fetch(`/api/getDevice?store=${deviceData.storeId}&device=${deviceData.deviceId}`);
+                    const data = await response.json();
+                    deviceData.mediaPath = data.mediaPath;
+                }
+
+                if (!deviceData.mediaPath) {
+                    throw new Error('No media path available');
+                }
+
+                // Set video source
+                videoPlayer.src = deviceData.mediaPath;
+                
+                videoPlayer.onloadeddata = function() {
+                    loadingMessage.style.display = 'none';
+                    videoPlayer.style.display = 'block';
+                    enterFullscreen();
+                };
+                
+                videoPlayer.onerror = function() {
+                    throw new Error('Failed to load video');
+                };
+                
+                // Handle video end (for non-looping videos)
+                videoPlayer.onended = function() {
+                    videoPlayer.currentTime = 0;
+                    videoPlayer.play();
+                };
+                
+            } catch (error) {
+                console.error('Player error:', error);
+                loadingMessage.textContent = 'Error loading video. Playing default content.';
+                
+                // Fallback to default video
+                videoPlayer.src = '/videolar/default.mp4';
+                videoPlayer.onloadeddata = function() {
+                    loadingMessage.style.display = 'none';
+                    videoPlayer.style.display = 'block';
+                    enterFullscreen();
+                };
+            }
+            
+            function enterFullscreen() {
+                if (!document.fullscreenElement) {
+                    videoContainer.requestFullscreen()
+                        .catch(err => console.error('Fullscreen error:', err));
+                }
+            }
+            
+            // Handle fullscreen change events
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement) {
+                    enterFullscreen();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
