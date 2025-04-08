@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 01, 2025 at 06:00 PM
+-- Generation Time: Apr 07, 2025 at 04:49 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `tvams`
+-- Database: `video_project_db`
 --
 
 -- --------------------------------------------------------
@@ -59,10 +59,12 @@ CREATE TABLE `devices` (
 --
 
 INSERT INTO `devices` (`Id`, `DeviceName`, `StoreId`, `UniqueId`, `IsRegister`, `EnterBy`, `ActionDate`) VALUES
-(1, 'TV1', 'S0100', '', 0, 'admin', '2025-04-01 14:51:40'),
-(2, 'TV2', 'S0100', '', 0, 'admin', '2025-04-01 14:51:51'),
-(3, 'TV3', 'S0100', '', 0, 'admin', '2025-04-01 14:51:59'),
-(4, 'TV4', 'S0100', '', 0, 'admin', '2025-04-01 14:52:08');
+(1, 'TV1', 'S0100', '', NULL, 'admin', '2025-04-01 09:21:40'),
+(2, 'TV2', 'S0100', '', NULL, 'admin', '2025-04-01 09:21:51'),
+(3, 'TV3', 'S0100', '', 0, 'admin', '2025-04-01 09:21:59'),
+(4, 'TV4', 'S0100', '', 0, 'admin', '2025-04-01 09:22:08'),
+(5, 'TV1', 'S0101', '', NULL, 'admin', '2025-04-01 09:21:40'),
+(6, 'TV2', 'S0101', '', 0, 'admin', '2025-04-01 09:21:51');
 
 -- --------------------------------------------------------
 
@@ -125,7 +127,7 @@ CREATE TABLE `stores` (
 
 INSERT INTO `stores` (`StoreId`, `StoreName`, `Address`, `PhoneNum`, `Email`, `NoOfHost`, `IsBlock`, `EnterBy`, `ActionDate`) VALUES
 ('S0100', 'BIRLING FRIED CHICKEN', 'BIRLING', '0123 456789', 'bfc@gmail.com', 4, 0, 'admin', '2025-04-01 14:50:41'),
-('S0101', 'AKSHNA FRIED CHICKEN', 'KENT', '0123 456789', 'akshna@gmail.com', 0, 0, 'admin', '2025-04-01 14:51:15');
+('S0101', 'AKSHNA FRIED CHICKEN', 'KENT', '0123 456789', 'akshna@gmail.com', 2, 0, 'admin', '2025-04-01 14:51:15');
 
 -- --------------------------------------------------------
 
@@ -185,13 +187,13 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `approvedevices`
 --
 ALTER TABLE `approvedevices`
-  MODIFY `Id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `Id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `devices`
 --
 ALTER TABLE `devices`
-  MODIFY `Id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `Id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

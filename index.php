@@ -171,11 +171,9 @@
             }
         }
 
-        async function handleApprovedDevice(storeId, deviceId, uniqueId) {
-            // Set cookie before redirect (30 day expiry)
-            document.cookie = `device_fingerprint=${encodeURIComponent(uniqueId)}; path=/; max-age=2592000`;
+        async function handleApprovedDevice(storeId, deviceId) {
             // Redirect to subdomain URL
-            window.location.href = `http://localhost/Final_VADD/${storeId}/${deviceId}`;
+            window.location.href = `http://localhost/Base_VADD/${storeId}/${deviceId}`;
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -187,22 +185,19 @@
             
             if (status.status === 'Authorized') {
                 // Device is approved - redirect to subdomain
-                handleApprovedDevice(status.storeId, status.deviceId, uniqueId);
+                handleApprovedDevice(status.storeId, status.deviceId);
                 return;
             } else if (status.status === 'Pending') {
                 // Device registered but pending approval
                 hideRegistrationForm();
                 showStatusMessage('warning', 'Device registered successfully! Waiting for approval.');
                 
-                // Set cookie while waiting for approval
-                document.cookie = `device_fingerprint=${encodeURIComponent(uniqueId)}; path=/; max-age=2592000`;
-                
                 // Start checking for approval periodically
                 deviceApprovalCheckInterval = setInterval(async () => {
                     const newStatus = await checkApprovalStatus(uniqueId);
                     if (newStatus.status === 'Authorized') {
                         clearInterval(deviceApprovalCheckInterval);
-                        handleApprovedDevice(newStatus.storeId, newStatus.deviceId, uniqueId);
+                        handleApprovedDevice(newStatus.storeId, newStatus.deviceId);
                     }
                 }, 10000); // Check every 10 seconds
                 return;
@@ -252,9 +247,6 @@
                 const result = await registerDevice(uniqueId, deviceId, shopId);
                 
                 if (result.status === 'success') {
-                    // Set cookie immediately after successful registration
-                    document.cookie = `device_fingerprint=${encodeURIComponent(uniqueId)}; path=/; max-age=2592000`;
-                    
                     hideRegistrationForm();
                     showStatusMessage('success', 'Device registered successfully! Waiting for approval.');
                     
@@ -263,7 +255,7 @@
                         const newStatus = await checkApprovalStatus(uniqueId);
                         if (newStatus.status === 'Authorized') {
                             clearInterval(deviceApprovalCheckInterval);
-                            handleApprovedDevice(newStatus.storeId, newStatus.deviceId, uniqueId);
+                            handleApprovedDevice(newStatus.storeId, newStatus.deviceId);
                         }
                     }, 10000); // Check every 10 seconds
                 } else {
