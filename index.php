@@ -6,38 +6,7 @@
     <title>Device Registration</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js?ver=<?= time() ?>"></script>
-    <style>
-        body {
-            background-color: #f4f4f4;
-            font-family: Arial, sans-serif;
-        }
-        #registration-container {
-            max-width: 500px;
-            margin: 50px auto;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        #video-container {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: black;
-            z-index: 1000;
-        }
-        #play-video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        .hidden {
-            display: none !important;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="registration-container">
@@ -171,9 +140,13 @@
             }
         }
 
-        async function handleApprovedDevice(storeId, deviceId) {
-            // Redirect to subdomain URL
-            window.location.href = `http://localhost/Base_VADD/${storeId}/${deviceId}`;
+        async function handleApprovedDevice(storeId, deviceId, uniqueId) {
+            // Save fingerprint to cookie before redirect
+            document.cookie = `device_fingerprint=${uniqueId}; path=/`;
+
+            // Redirect using IP address (so it works on TV, not localhost)
+            const hostname = window.location.hostname;
+            window.location.href = `http://${hostname}/Base_VADD/${storeId}/${deviceId}`;
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -185,7 +158,8 @@
             
             if (status.status === 'Authorized') {
                 // Device is approved - redirect to subdomain
-                handleApprovedDevice(status.storeId, status.deviceId);
+                handleApprovedDevice(status.storeId, status.deviceId, uniqueId);
+
                 return;
             } else if (status.status === 'Pending') {
                 // Device registered but pending approval

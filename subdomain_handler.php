@@ -36,17 +36,20 @@ try {
         }
     }
 
-    // If no custom videos, use default video directory
-    if (empty($videoList)) {
-        $videoDir = 'videolar';
-        $videoPathPrefix = '/Base_VADD/videolar'; // Absolute path
-        if (is_dir($videoDir)) {
-            foreach (scandir($videoDir) as $file) {
-                if ($file !== '.' && $file !== '..' && preg_match('/\.(mp4|webm|ogg)$/', $file)) {
-                    $videoList[] = $videoPathPrefix . '/' . $file; // Use full URL path
-                }
+            // If no custom videos, use default video
+        if (empty($videoList)) {
+            $videoPathPrefix = '/Base_VADD/videolar'; // Absolute path
+            $defaultVideo = '1.mp4'; // Default video filename
+            
+            // Check if default video exists
+            $videoDir = 'videolar';
+            $defaultVideoPath = $videoDir . '/' . $defaultVideo;
+            
+            if (file_exists($defaultVideoPath)) {
+                $videoList[] = $videoPathPrefix . '/' . $defaultVideo; // Use full URL path
             }
-        }
+            // No need for shuffle since there's only one video
+        
         shuffle($videoList); // Optional
     }
 
@@ -59,6 +62,7 @@ try {
     <html>
     <head>
         <title>Video Display</title>
+        
         <style>
             body, html {
                 margin: 0;

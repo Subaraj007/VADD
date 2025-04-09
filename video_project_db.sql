@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 07, 2025 at 04:49 AM
+-- Generation Time: Apr 09, 2025 at 06:39 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -38,6 +38,15 @@ CREATE TABLE `approvedevices` (
   `ActionTime` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `approvedevices`
+--
+
+INSERT INTO `approvedevices` (`Id`, `UniqueId`, `StoreId`, `DeviceName`, `IsActive`, `MediaPath`, `EnterBy`, `ActionTime`) VALUES
+(55, 'bfdb668525e5ee9744137e0004570f5c', 'S0100', 'TV1', 1, '/Base_VADD/videolar/2.mp4', 'system', '2025-04-09 14:41:28'),
+(59, '551e014a7f5262d0566eef1b933d9963', 'S0100', 'TV3', 1, '/Base_VADD/videolar/2.mp4', 'system', '2025-04-09 16:32:33'),
+(60, '5a0b8fd9f754b1c7a7edab3593155f51', 'S0100', 'TV2', 1, '/Base_VADD/videolar/2.mp4', 'system', '2025-04-09 16:38:37');
+
 -- --------------------------------------------------------
 
 --
@@ -59,11 +68,11 @@ CREATE TABLE `devices` (
 --
 
 INSERT INTO `devices` (`Id`, `DeviceName`, `StoreId`, `UniqueId`, `IsRegister`, `EnterBy`, `ActionDate`) VALUES
-(1, 'TV1', 'S0100', '', NULL, 'admin', '2025-04-01 09:21:40'),
-(2, 'TV2', 'S0100', '', NULL, 'admin', '2025-04-01 09:21:51'),
-(3, 'TV3', 'S0100', '', 0, 'admin', '2025-04-01 09:21:59'),
+(1, 'TV1', 'S0100', 'bfdb668525e5ee9744137e0004570f5c', 1, 'admin', '2025-04-01 09:21:40'),
+(2, 'TV2', 'S0100', '5a0b8fd9f754b1c7a7edab3593155f51', 1, 'admin', '2025-04-01 09:21:51'),
+(3, 'TV3', 'S0100', '551e014a7f5262d0566eef1b933d9963', 1, 'admin', '2025-04-01 09:21:59'),
 (4, 'TV4', 'S0100', '', 0, 'admin', '2025-04-01 09:22:08'),
-(5, 'TV1', 'S0101', '', NULL, 'admin', '2025-04-01 09:21:40'),
+(5, 'TV1', 'S0101', '', 0, 'admin', '2025-04-01 09:21:40'),
 (6, 'TV2', 'S0101', '', 0, 'admin', '2025-04-01 09:21:51');
 
 -- --------------------------------------------------------
@@ -187,7 +196,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `approvedevices`
 --
 ALTER TABLE `approvedevices`
-  MODIFY `Id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `Id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT for table `devices`
